@@ -45,6 +45,7 @@ pub struct Comment {
 pub struct PostUser<T = UserId> {
     pub id: T,
     pub name: T,
+    pub introduction: T,
 }
 
 #[derive(Debug, Deserialize)]

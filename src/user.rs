@@ -34,13 +34,13 @@ pub async fn create(pool: PoolD, Json(user): Json<User>) -> HttpResponse {
 }
 
 // Get
-pub async fn _login(pool: PoolD, req: HttpRequest) -> HttpResponse {
-    let Some(cookie) = req.cookie("session_id") else {
+pub async fn login(pool: PoolD, req: HttpRequest) -> HttpResponse {
+    let Some(cookie) = req.cookie("id") else {
         return HttpResponse::NotFound().into();
     };
     let id = cookie.value().to_string();
 
-    match query_as::<Postgres, PostUser>("SELECT id, name FROM users WHERE id = $1;")
+    match query_as::<Postgres, PostUser>("SELECT id, name, introduction FROM users WHERE id = $1;")
         .bind(id)
         .fetch_one(&pool.0)
         .await
@@ -63,6 +63,7 @@ pub async fn search(pool: PoolD, Json(user): Json<PostUser<Option<String>>>) -> 
         PostUser {
             id: Some(id),
             name: None,
+            ..
         } => {
             query_as("SELECT id, name FROM users WHERE id = $1;")
                 .bind(id)
@@ -72,6 +73,7 @@ pub async fn search(pool: PoolD, Json(user): Json<PostUser<Option<String>>>) -> 
         PostUser {
             id: None,
             name: Some(name),
+            ..
         } => {
             query_as("SELECT id, name FROM users WHERE name = $1;")
                 .bind(name)
@@ -81,6 +83,7 @@ pub async fn search(pool: PoolD, Json(user): Json<PostUser<Option<String>>>) -> 
         PostUser {
             id: Some(id),
             name: Some(name),
+            ..
         } => {
             query_as("SELECT id, name FROM users WHERE id = $1 AND name = $2;")
                 .bind(id)
