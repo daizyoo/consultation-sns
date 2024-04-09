@@ -32,6 +32,7 @@ pub struct Article {
     pub text: String,
 }
 
+#[allow(dead_code)]
 pub struct Comment {
     pub id: ArticleId,
     pub user_id: UserId,
