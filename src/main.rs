@@ -55,18 +55,12 @@ async fn main() -> anyhow::Result<()> {
                             .route("/search", get().to(user::search))
                             .route("/delete", post().to(user::delete)),
                     )
-                    .service(
-                        scope("/comment")
-                            .route("/post", post().to(comment::post))
-                            .route("/delete", post().to(comment::delete)),
-                    ),
+                    .service(scope("/comment").route("/post", post().to(comment::post))),
             )
             .service(Files::new("/script", "app/script/"))
             .service(Files::new("/style", "app/style/"))
-            .service(Files::new("/", "app/pages").index_file("index.html"))
-            .service(Files::new("/experience", "app/pages/experience").index_file("index.html"))
-            .service(Files::new("/consultation", "app/pages/consultation").index_file("index.html"))
             .service(Files::new("/user", "app/pages/user").index_file("index.html"))
+            .service(Files::new("/", "app/pages").index_file("index.html"))
             .default_service(fn_service(|req: ServiceRequest| async {
                 let (req, _) = req.into_parts();
                 let file = NamedFile::open_async("../app/pages/404.html").await?;

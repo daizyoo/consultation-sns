@@ -28,7 +28,3 @@ pub async fn post(pool: PoolD, Json(comment): Json<CommentPost>) -> HttpResponse
         }
     }
 }
-
-pub async fn delete() -> HttpResponse {
-    HttpResponse::NotFound().json(Response::error(""))
-}

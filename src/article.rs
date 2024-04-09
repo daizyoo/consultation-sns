@@ -38,6 +38,7 @@ pub async fn post(pool: PoolD, Json(article): Json<ArticlePost>) -> HttpResponse
     }
 }
 
+// api/article/search?article_type=experience&logic=or&text=%E3%83%86&nice=0
 pub async fn search(pool: PoolD, Query(option): Query<SearchArticle>) -> HttpResponse {
     match option.to_query(pool).await {
         Ok(articles) => {
@@ -53,20 +54,11 @@ pub async fn search(pool: PoolD, Query(option): Query<SearchArticle>) -> HttpRes
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct SearchArticle {
-    logic: Logic,
-    article_type: ArticleType,
-    empathy: Option<i16>,
-    nice: Option<i16>,
-    title: Option<String>,
-    text: Option<String>,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Default, Deserialize, PartialEq)]
 enum Logic {
     #[serde(rename(deserialize = "and"))]
     And,
+    #[default]
     #[serde(rename(deserialize = "or"))]
     Or,
 }
@@ -75,7 +67,7 @@ impl Logic {
     const LOGIC_OR: &'static str = "OR";
     const LOGIC_AND: &'static str = "AND";
 
-    const fn s(&self) -> &'static str {
+    const fn string(&self) -> &'static str {
         match self {
             Logic::And => Self::LOGIC_AND,
             Logic::Or => Self::LOGIC_OR,
@@ -83,27 +75,38 @@ impl Logic {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SearchArticle {
+    article_type: ArticleType,
+    logic: Option<Logic>,
+    empathy: Option<i16>,
+    nice: Option<i16>,
+    title: Option<String>,
+    text: Option<String>,
+}
+
 impl SearchArticle {
     const QUERY_TEMP: &'static str = r#"SELECT * FROM article WHERE article_type = $1"#;
 
     async fn to_query(self, pool: PoolD) -> Result<Vec<Article>, sqlx::Error> {
+        let logic = self.logic.unwrap_or(Logic::Or).string();
         let mut query = Self::QUERY_TEMP.to_string();
         let mut value_count = 2;
 
         if let Some(_) = self.empathy {
-            query.push_str(&format!(" {} empathy = ${}", self.logic.s(), value_count));
+            query.push_str(&format!(" {} empathy = ${}", logic, value_count));
             value_count += 1;
         }
         if let Some(_) = self.nice {
-            query.push_str(&format!(" {} nice = ${}", self.logic.s(), value_count));
+            query.push_str(&format!(" {} nice = ${}", logic, value_count));
             value_count += 1;
         }
         if let Some(_) = self.title {
-            query.push_str(&format!(" {} title LIKE ${}", self.logic.s(), value_count));
+            query.push_str(&format!(" {} title LIKE ${}", logic, value_count));
             value_count += 1;
         }
         if let Some(_) = self.text {
-            query.push_str(&format!(" {} text LIKE ${}", self.logic.s(), value_count));
+            query.push_str(&format!(" {} text LIKE ${}", logic, value_count));
         }
 
         let mut query = query_as(query.as_str()).bind(self.article_type as ArticleType);

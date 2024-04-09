@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
     PRIMARY KEY (id)
 );
 
+COMMENT ON COLUMN users.introduction IS '自己紹介';
+
 CREATE TABLE comment(
     id SERIAL NOT NULL,
     user_id varchar(15) NOT NULL,
