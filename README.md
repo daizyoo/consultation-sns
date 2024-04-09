@@ -56,17 +56,8 @@
 #### api/article/search
 
 |method|Type|
-| :--: |
+| :--: |:--:|
 |POST|SearchArticle|
-
-<!-- |name|type|
-| :--: | :--: |
-|<span style="color: red; ">type</span>|experience or consultation|
-|logic| and or or|
-|empathy|i16|
-|nice|i16|
-|title|String|
-|text|String| -->
 
 ### Comment
 
