@@ -51,9 +51,7 @@ async fn main() -> anyhow::Result<()> {
                     .service(
                         scope("/user")
                             .route("/create", post().to(user::create))
-                            .route("/login", get().to(user::login))
-                            .route("/search", get().to(user::search))
-                            .route("/delete", post().to(user::delete)),
+                            .route("/search", get().to(user::search)),
                     )
                     .service(scope("/comment").route("/post", post().to(comment::post))),
             )

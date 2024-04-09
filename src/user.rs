@@ -1,8 +1,4 @@
-use actix_web::{
-    cookie::Cookie,
-    web::{Json, Query},
-    HttpRequest, HttpResponse,
-};
+use actix_web::{cookie::Cookie, web::Json, HttpRequest, HttpResponse};
 use serde::Serialize;
 use sqlx::{query, query_as, Postgres};
 use tracing::error;
@@ -38,8 +34,8 @@ pub async fn create(pool: PoolD, Json(user): Json<User>) -> HttpResponse {
 }
 
 // Get
-pub async fn login(pool: PoolD, req: HttpRequest) -> HttpResponse {
-    let Some(cookie) = req.cookie("id") else {
+pub async fn _login(pool: PoolD, req: HttpRequest) -> HttpResponse {
+    let Some(cookie) = req.cookie("session_id") else {
         return HttpResponse::NotFound().into();
     };
     let id = cookie.value().to_string();
@@ -62,11 +58,7 @@ pub struct SearchUserResult {
     users: Vec<PostUser>,
 }
 
-// Get
-// /search?id=id
-// /search?name=name
-// /search?id=id&name=name <-意味無い？
-pub async fn search(pool: PoolD, Query(user): Query<PostUser<Option<String>>>) -> HttpResponse {
+pub async fn search(pool: PoolD, Json(user): Json<PostUser<Option<String>>>) -> HttpResponse {
     let result: Result<Vec<PostUser>, sqlx::Error> = match user {
         PostUser {
             id: Some(id),
@@ -114,8 +106,4 @@ pub async fn search(pool: PoolD, Query(user): Query<PostUser<Option<String>>>) -
             HttpResponse::NotFound().json(Response::error("???サーバーエラー???"))
         }
     }
-}
-
-pub async fn delete() -> HttpResponse {
-    HttpResponse::Ok().json(Response::error("data"))
 }

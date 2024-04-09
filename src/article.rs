@@ -1,7 +1,4 @@
-use actix_web::{
-    web::{Json, Query},
-    HttpResponse,
-};
+use actix_web::{web::Json, HttpResponse};
 use serde::Deserialize;
 use sqlx::{query, query_as};
 use urlencoding::decode;
@@ -38,8 +35,7 @@ pub async fn post(pool: PoolD, Json(article): Json<ArticlePost>) -> HttpResponse
     }
 }
 
-// api/article/search?article_type=experience&logic=or&text=%E3%83%86&nice=0
-pub async fn search(pool: PoolD, Query(option): Query<SearchArticle>) -> HttpResponse {
+pub async fn search(pool: PoolD, Json(option): Json<SearchArticle>) -> HttpResponse {
     match option.to_query(pool).await {
         Ok(articles) => {
             if articles.len() == 0 {
@@ -54,11 +50,10 @@ pub async fn search(pool: PoolD, Query(option): Query<SearchArticle>) -> HttpRes
     }
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq)]
 enum Logic {
     #[serde(rename(deserialize = "and"))]
     And,
-    #[default]
     #[serde(rename(deserialize = "or"))]
     Or,
 }
@@ -75,8 +70,9 @@ impl Logic {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct SearchArticle {
+    #[serde(rename(deserialize = "type"))]
     article_type: ArticleType,
     logic: Option<Logic>,
     empathy: Option<i16>,
