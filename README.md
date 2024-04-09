@@ -35,16 +35,11 @@
 
 ---
 
-#### api/user/search?
+#### api/user/search
 
-|method|
-| :--: |
-|GET(QueryParameter)|
-
-|name|type|
-| :--: | :--: |
-|id|String|
-|name|String|
+|method|Type|
+| :--: |:--:|
+|GET|PotsUser|
 
 ### Article
 
@@ -58,20 +53,20 @@
 
 ---
 
-#### api/article/search?
+#### api/article/search
 
-|method|
+|method|Type|
 | :--: |
-|GET(QueryParameter)|
+|POST|SearchArticle|
 
-|name|type|
+<!-- |name|type|
 | :--: | :--: |
 |<span style="color: red; ">type</span>|experience or consultation|
 |logic| and or or|
 |empathy|i16|
 |nice|i16|
 |title|String|
-|text|String|
+|text|String| -->
 
 ### Comment
 
