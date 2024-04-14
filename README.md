@@ -5,21 +5,26 @@
 - [ ] [User](#user)
   - [x] 作成
   - [x] 検索
+  - [x] ログイン
   - [ ] 削除
+  - [ ] 編集
 - [ ] [相談](#article)
   - [x] 作成
   - [x] 検索
   - [ ] 削除
+  - [ ] 編集
 - [ ] [経験談](#article)
   - [x] 作成
   - [x] 検索
   - [ ] 削除
+  - [ ] 編集
 - [ ] [コメント](#comment)
   - [x] 作成
   - [ ] 検索
   - [ ] 削除
+  - [ ] 編集
+- [x] セッションID
 - [ ] タグ
-- [ ] セッションID
 
 ## API
 
@@ -29,9 +34,9 @@
 
 #### api/user/create
 
-|method|Type|
+|method| Type |
 | :--: | :--: |
-| POST | User|
+| POST | User |
 
 ---
 
@@ -40,6 +45,26 @@
 |method|Type|
 | :--: |:--:|
 |GET|PotsUser|
+
+---
+
+#### api/user/login
+
+|method|Type|
+| :--: |:--:|
+| GET  | -- |
+| POST |Login|
+
+> GET
+
+session_idからuser_idを検索
+
+- 見つかった -> DBからuser_idを検索
+  - DB検索で見つかった ->
+  - DB検索で見つからなかった -> ユーザー作成ページに移動
+- 見つからなかった -> ユーザー作成ページに移動
+
+> POST
 
 ### Article
 

@@ -1,7 +1,8 @@
-use actix_web::{cookie::Cookie, web::Json, HttpRequest, HttpResponse};
-use serde::Serialize;
+use actix_session::Session;
+use actix_web::{web::Json, HttpResponse};
+use serde::Deserialize;
 use sqlx::{query, query_as, Postgres};
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
     types::{PostUser, Response, User},
@@ -9,8 +10,14 @@ use crate::{
 };
 
 // Post
-pub async fn create(pool: PoolD, Json(user): Json<User>) -> HttpResponse {
-    println!("{:#?}", user);
+pub async fn create(pool: PoolD, session: Session, Json(user): Json<User>) -> HttpResponse {
+    if let Some(user_id) = session.get::<String>("user_id").ok() {
+        if user_id.is_some() {
+            return HttpResponse::Ok().json(Response::error("作成済"));
+        }
+    }
+
+    info!("{:#?}", user);
 
     match query("INSERT INTO users ( id, name, password, introduction ) VALUES ( $1, $2, $3, $4 );")
         .bind(user.id.clone())
@@ -21,10 +28,11 @@ pub async fn create(pool: PoolD, Json(user): Json<User>) -> HttpResponse {
         .await
     {
         Ok(_) => {
-            let mut cookie = Cookie::new("id", user.id);
-            cookie.set_path("/");
-
-            HttpResponse::Ok().cookie(cookie).json(Response::ok_none())
+            if let Err(e) = session.insert("user_id", user.id) {
+                error!("{}", e);
+                return HttpResponse::Ok().json(Response::error("session insert error"));
+            }
+            HttpResponse::Ok().json(Response::ok_none())
         }
         Err(e) => {
             error!("{:?}", e);
@@ -34,28 +42,65 @@ pub async fn create(pool: PoolD, Json(user): Json<User>) -> HttpResponse {
 }
 
 // Get
-pub async fn login(pool: PoolD, req: HttpRequest) -> HttpResponse {
-    let Some(cookie) = req.cookie("id") else {
-        return HttpResponse::NotFound().into();
-    };
-    let id = cookie.value().to_string();
+pub async fn login_get(pool: PoolD, session: Session) -> HttpResponse {
+    let id: String;
+    if let Ok(user_id) = session.get::<String>("user_id") {
+        if let Some(user_id) = user_id {
+            println!("{}", user_id);
+            id = user_id;
+        } else {
+            return HttpResponse::NotFound().json(Response::error("not found user_id"));
+        }
+    } else {
+        return HttpResponse::NotFound().json(Response::error("session get user_id error"));
+    }
 
     match query_as::<Postgres, PostUser>("SELECT id, name, introduction FROM users WHERE id = $1;")
         .bind(id)
         .fetch_one(&pool.0)
         .await
     {
-        Ok(user) => HttpResponse::Ok().json(Response::ok(user)),
+        Ok(user) => {
+            info!("{:#?}", user);
+            HttpResponse::Ok().json(Response::ok(user))
+        }
         Err(e) => {
             error!("{}", e);
-            HttpResponse::NotFound().json(Response::error("???サーバーエラー???"))
+            HttpResponse::NotFound().json(Response::error("サーバーエラー?"))
         }
     }
 }
 
-#[derive(Serialize)]
-pub struct SearchUserResult {
-    users: Vec<PostUser>,
+#[derive(Deserialize)]
+pub struct Login {
+    pub id: String,
+    pub password: String,
+}
+
+pub async fn login_post(pool: PoolD, session: Session, Json(login): Json<Login>) -> HttpResponse {
+    match query("SELECT id, password FROM users WHERE id = $1 AND password = $2")
+        .bind(login.id.clone())
+        .bind(login.password)
+        .execute(&pool.0)
+        .await
+    {
+        Ok(res) => {
+            let row = res.rows_affected();
+            println!("{}", row);
+            if row == 0 {
+                return HttpResponse::NotFound()
+                    .json(Response::error("idまたはpasswordが違います"));
+            }
+            if let Err(e) = session.insert("user_id", login.id) {
+                error!("{}", e)
+            }
+            HttpResponse::Ok().json(Response::ok_none())
+        }
+        Err(e) => {
+            error!("{:?}", e);
+            HttpResponse::Ok().json(Response::error("Error"))
+        }
+    }
 }
 
 pub async fn search(pool: PoolD, Json(user): Json<PostUser<Option<String>>>) -> HttpResponse {
@@ -96,13 +141,13 @@ pub async fn search(pool: PoolD, Json(user): Json<PostUser<Option<String>>>) -> 
 
     match result {
         Ok(users) => {
-            println!("{:#?}", users);
+            info!("{:#?}", users);
             if users.len() == 0 {
                 return HttpResponse::NotFound()
                     .json(Response::error("ユーザーが見つかりませんでした"));
             }
 
-            HttpResponse::Ok().json(Response::ok(SearchUserResult { users }))
+            HttpResponse::Ok().json(Response::ok(users))
         }
         Err(e) => {
             error!("{:?}", e);

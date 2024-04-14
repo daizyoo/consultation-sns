@@ -9,9 +9,6 @@ use crate::{
 };
 
 pub async fn post(pool: PoolD, Json(article): Json<ArticlePost>) -> HttpResponse {
-    if article.article_type == ArticleType::Consultation {
-        return HttpResponse::BadRequest().json(Response::error("ArticleType does not match"));
-    }
     println!("{:#?}", article);
     let result = query!(
         r#"INSERT INTO article (article_type, user_id, title, text) VALUES ( $1, $2, $3, $4 )"#,

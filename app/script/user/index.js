@@ -26,7 +26,7 @@ fetch("/api/user/login").then(res => res.json()).then(res => {
 
     createApp({
         setup() {
-            const id = ref(user.introduction)
+            const introduction = ref(user.introduction)
             return { introduction }
         }
     }).mount('#introduction')

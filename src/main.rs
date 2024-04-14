@@ -1,9 +1,10 @@
 use actix_cors::Cors;
-use actix_files::{Files, NamedFile};
+use actix_files::Files;
+use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{
-    dev::{fn_service, ServiceRequest, ServiceResponse},
+    cookie::{time::Duration, Key},
     middleware::Logger,
-    web::{get, post, scope, Data},
+    web::{get, post, resource, scope, Data, ServiceConfig},
     App, HttpServer,
 };
 use sqlx::{PgPool, Pool, Postgres};
@@ -16,57 +17,70 @@ mod comment;
 mod types;
 mod user;
 
+type PoolD = Data<DBPool>;
+
 struct DBPool(Pool<Postgres>);
 
-type PoolD = Data<DBPool>;
+const SESSION_LIFECYCLE: Duration = Duration::WEEK;
+
+fn user_config(cfg: &mut ServiceConfig) {
+    cfg.route("/create", post().to(user::create))
+        .route("/search", get().to(user::search))
+        .service(
+            resource("/login")
+                .route(get().to(user::login_get))
+                .route(post().to(user::login_post)),
+        );
+}
+
+fn article_config(cfg: &mut ServiceConfig) {
+    cfg.route("/post", post().to(article::post))
+        .route("/search", get().to(article::search));
+}
+
+fn comment_config(cfg: &mut ServiceConfig) {
+    cfg.route("/post", post().to(comment::post));
+}
 
 // #[tokio::main(flavor = "multi_thread", worker_threads = 1)]
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv()?;
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .with_file(true)
-        .with_line_number(true)
-        .init();
 
     let pool = PgPool::connect(&std::env::var("DATABASE_URL")?).await?;
 
-    info!("http://127.0.0.1:3478");
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+    info!("starting http://127.0.0.1:3478");
 
     HttpServer::new(move || {
-        let cors = Cors::default()
-            // .allowed_origin("http://127.0.0.1:3478")
-            .allowed_methods(["GET", "POST"]);
         App::new()
-            .wrap(cors)
-            .wrap(Logger::default())
+            .wrap(Logger::new("<%r> %s <%{User-Agent}i> %T"))
+            .wrap(
+                Cors::default()
+                    // .allowed_origin("http://localhost:3478")
+                    .allowed_methods(["GET", "POST"]),
+            )
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
+                    .session_lifecycle(PersistentSession::default().session_ttl(SESSION_LIFECYCLE))
+                    .cookie_name("session_id".to_owned())
+                    .cookie_path("/".to_owned())
+                    .cookie_secure(false)
+                    .build(),
+            )
             .service(
                 scope("/api")
-                    .service(
-                        scope("/article")
-                            .route("/post", post().to(article::post))
-                            .route("/search", get().to(article::search)),
-                    )
-                    .service(
-                        scope("/user")
-                            .route("/create", post().to(user::create))
-                            .route("/login", get().to(user::login))
-                            .route("/search", get().to(user::search)),
-                    )
-                    .service(scope("/comment").route("/post", post().to(comment::post))),
+                    .service(scope("/user").configure(user_config))
+                    .service(scope("/article").configure(article_config))
+                    .service(scope("/comment").configure(comment_config)),
             )
             .service(Files::new("/script", "app/script/"))
             .service(Files::new("/style", "app/style/"))
             .service(Files::new("/user", "app/pages/user").index_file("index.html"))
-            .service(Files::new("/", "app/pages").index_file("index.html"))
             .service(Files::new("/article", "app/pages/article").index_file("index.html"))
-            .default_service(fn_service(|req: ServiceRequest| async {
-                let (req, _) = req.into_parts();
-                let file = NamedFile::open_async("../app/pages/404.html").await?;
-                let res = file.into_response(&req);
-                Ok(ServiceResponse::new(req, res))
-            }))
+            .service(Files::new("/", "app/pages").index_file("index.html"))
             .app_data(Data::new(DBPool(pool.clone())))
     })
     .bind(("127.0.0.1", 3478))?
@@ -76,3 +90,6 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {}
