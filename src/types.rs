@@ -92,3 +92,23 @@ impl Response<bool> {
         }
     }
 }
+
+#[derive(Deserialize, PartialEq)]
+pub enum Logic {
+    #[serde(rename(deserialize = "and"))]
+    And,
+    #[serde(rename(deserialize = "or"))]
+    Or,
+}
+
+impl Logic {
+    const LOGIC_OR: &'static str = "OR";
+    const LOGIC_AND: &'static str = "AND";
+
+    pub const fn string(&self) -> &'static str {
+        match self {
+            Logic::And => Self::LOGIC_AND,
+            Logic::Or => Self::LOGIC_OR,
+        }
+    }
+}

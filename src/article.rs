@@ -4,7 +4,7 @@ use sqlx::{query, query_as};
 use urlencoding::decode;
 
 use crate::{
-    types::{Article, ArticlePost, ArticleType, Response},
+    types::{Article, ArticlePost, ArticleType, Logic, Response},
     PoolD,
 };
 
@@ -47,26 +47,6 @@ pub async fn search(pool: PoolD, Json(option): Json<SearchArticle>) -> HttpRespo
     }
 }
 
-#[derive(Deserialize, PartialEq)]
-enum Logic {
-    #[serde(rename(deserialize = "and"))]
-    And,
-    #[serde(rename(deserialize = "or"))]
-    Or,
-}
-
-impl Logic {
-    const LOGIC_OR: &'static str = "OR";
-    const LOGIC_AND: &'static str = "AND";
-
-    const fn string(&self) -> &'static str {
-        match self {
-            Logic::And => Self::LOGIC_AND,
-            Logic::Or => Self::LOGIC_OR,
-        }
-    }
-}
-
 #[derive(Deserialize)]
 pub struct SearchArticle {
     #[serde(rename(deserialize = "type"))]
@@ -79,7 +59,7 @@ pub struct SearchArticle {
 }
 
 impl SearchArticle {
-    const QUERY_TEMP: &'static str = r#"SELECT * FROM article WHERE article_type = $1"#;
+    const QUERY_TEMP: &'static str = "SELECT * FROM article WHERE article_type = $1";
 
     async fn to_query(self, pool: PoolD) -> Result<Vec<Article>, sqlx::Error> {
         let logic = self.logic.unwrap_or(Logic::Or).string();

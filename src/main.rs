@@ -59,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap(Logger::new("<%r> %s <%{User-Agent}i> %T"))
             .wrap(
                 Cors::default()
-                    // .allowed_origin("http://localhost:3478")
+                    // .allowed_origin("http://127.0.0.1:3478")
                     .allowed_methods(["GET", "POST"]),
             )
             .wrap(
@@ -78,8 +78,6 @@ async fn main() -> anyhow::Result<()> {
             )
             .service(Files::new("/script", "app/script/"))
             .service(Files::new("/style", "app/style/"))
-            .service(Files::new("/user", "app/pages/user").index_file("index.html"))
-            .service(Files::new("/article", "app/pages/article").index_file("index.html"))
             .service(Files::new("/", "app/pages").index_file("index.html"))
             .app_data(Data::new(DBPool(pool.clone())))
     })
