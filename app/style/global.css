@@ -1,4 +1,22 @@
 .flex {
     display: flex;
     flex-direction: column;
+    
 }
+body {
+    background-position: 100% 100%;
+    background-repeat:no-repeat;
+    background-size: 20%;
+    background-image: url(https://chicodeza.com/wordpress/wp-content/uploads/risu-illust1.png);
+  
+  }
+  .color{
+    color: #001fd1;
+    text-align:center;
+  }
+  .tex{
+    text-align: center;
+   
+  }
+  
+  
